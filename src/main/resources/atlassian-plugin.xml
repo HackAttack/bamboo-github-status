@@ -1,0 +1,15 @@
+<atlassian-plugin key="${project.groupId}.${project.artifactId}" name="${project.name}" plugins-version="2">
+    <plugin-info>
+        <description>${project.description}</description>
+        <version>${project.version}</version>
+        <vendor name="${project.organization.name}" url="${project.organization.url}" />
+        <param name="plugin-icon">images/pluginIcon.png</param>
+        <param name="plugin-logo">images/pluginLogo.png</param>
+    </plugin-info>
+
+    <bambooEventListener key="githubCommitStatusUpdater" name="GitHub Commit Status Updater" class="com.mhackner.bamboo.GitHubStatusUpdater">
+        <description>Communicates with the GitHub status API in response to build events.</description>
+    </bambooEventListener>
+
+    <component-import key="applicationProperties" interface="com.atlassian.sal.api.ApplicationProperties" />
+</atlassian-plugin>
