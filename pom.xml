@@ -14,8 +14,8 @@
         <url>http://mhackner.com</url>
     </organization>
 
-    <name>bamboo-github-status</name>
-    <description>This is the com.mhackner:bamboo-github-status plugin for Atlassian Bamboo.</description>
+    <name>GitHub Status</name>
+    <description>A plugin for Atlassian Bamboo that reports build results to the GitHub status API.</description>
     <packaging>atlassian-plugin</packaging>
 
     <scm>
