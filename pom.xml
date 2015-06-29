@@ -18,6 +18,12 @@
     <description>This is the com.mhackner:bamboo-github-status plugin for Atlassian Bamboo.</description>
     <packaging>atlassian-plugin</packaging>
 
+    <scm>
+        <developerConnection>scm:git:https://github.com/HackAttack/bamboo-github-status.git</developerConnection>
+        <url>https://github.com/HackAttack/bamboo-github-status</url>
+        <tag>HEAD</tag>
+    </scm>
+
     <properties>
         <bamboo.version>5.9.1</bamboo.version>
         <bamboo.data.version>5.9.1</bamboo.data.version>
@@ -88,6 +94,13 @@
                 <configuration>
                     <source>1.6</source>
                     <target>1.6</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>2.5.2</version>
+                <configuration>
+                    <tagNameFormat>@{project.version}</tagNameFormat>
                 </configuration>
             </plugin>
         </plugins>
