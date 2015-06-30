@@ -25,7 +25,7 @@
     <properties>
         <bamboo.version>5.9.1</bamboo.version>
         <bamboo.data.version>5.9.1</bamboo.data.version>
-        <amps.version>5.0.13</amps.version>
+        <amps.version>5.1.6</amps.version>
         <plugin.testrunner.version>1.2.3</plugin.testrunner.version>
     </properties>
 
