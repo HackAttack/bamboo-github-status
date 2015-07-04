@@ -10,18 +10,19 @@ import com.atlassian.sal.api.ApplicationProperties;
 import com.atlassian.sal.api.UrlMode;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
 import org.eclipse.egit.github.core.CommitStatus;
 import org.eclipse.egit.github.core.RepositoryId;
 import org.eclipse.egit.github.core.client.GitHubClient;
 import org.eclipse.egit.github.core.service.CommitService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
 
 public abstract class AbstractGitHubStatusAction {
 
-    private static final Logger log = Logger.getLogger(AbstractGitHubStatusAction.class);
+    private static final Logger log = LoggerFactory.getLogger(AbstractGitHubStatusAction.class);
 
     private final ApplicationProperties applicationProperties;
     private final EncryptionService encryptionService;
@@ -35,8 +36,7 @@ public abstract class AbstractGitHubStatusAction {
     void updateStatus(String status, Chain chain, ChainExecution chainExecution) {
         List<RepositoryDefinition> repos = chain.getEffectiveRepositoryDefinitions();
         if (repos.size() != 1) {
-            log.warn(String.format("Wanted 1 repo but found %d. Not updating GitHub status.",
-                    repos.size()));
+            log.warn("Wanted 1 repo but found {}. Not updating GitHub status.", repos.size());
             return;
         }
 
@@ -44,8 +44,7 @@ public abstract class AbstractGitHubStatusAction {
         GitHubRepository repo = Narrow.downTo(repoDefinition.getRepository(),
                 GitHubRepository.class);
         if (repo == null) {
-            log.info(String.format("Repo %s is not a GitHub repo.",
-                    repoDefinition.getRepository().getName()));
+            log.info("Repo {} is not a GitHub repo.", repoDefinition.getRepository().getName());
             return;
         }
 
@@ -67,7 +66,7 @@ public abstract class AbstractGitHubStatusAction {
                 .setTargetUrl(url);
         try {
             commitService.createStatus(RepositoryId.createFromId(repo), sha, commitStatus);
-            log.info(String.format("GitHub status for commit %s set to %s.", sha, status));
+            log.info("GitHub status for commit {} set to {}.", sha, status);
         } catch (IOException ex) {
             log.error("Failed to update GitHub status", ex);
         }
