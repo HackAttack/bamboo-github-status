@@ -44,7 +44,7 @@ public abstract class AbstractGitHubStatusAction {
         GitHubRepository repo = Narrow.downTo(repoDefinition.getRepository(),
                 GitHubRepository.class);
         if (repo == null) {
-            log.info("Repo {} is not a GitHub repo.", repoDefinition.getRepository().getName());
+            log.info("Repo {} is not a GitHub repo.", repoDefinition.getName());
             return;
         }
 
