@@ -7,9 +7,8 @@ import com.atlassian.bamboo.repository.RepositoryDefinition;
 import com.atlassian.bamboo.security.EncryptionService;
 import com.atlassian.bamboo.util.Narrow;
 import com.atlassian.sal.api.ApplicationProperties;
-import com.atlassian.sal.api.UrlMode;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.egit.github.core.CommitStatus;
 import org.eclipse.egit.github.core.RepositoryId;
 import org.eclipse.egit.github.core.client.GitHubClient;
@@ -49,9 +48,12 @@ public abstract class AbstractGitHubStatusAction {
         }
 
         String sha = chainExecution.getBuildChanges().getVcsRevisionKey(repoDefinition.getId());
+
+        @SuppressWarnings("deprecation")
         String url = String.format("%s/browse/%s",
-                StringUtils.removeEnd(applicationProperties.getBaseUrl(UrlMode.CANONICAL), "/"),
+                StringUtils.removeEnd(applicationProperties.getBaseUrl(), "/"),
                 chainExecution.getPlanResultKey());
+
         setStatus(status, sha, url, repo.getUsername(),
                 encryptionService.decrypt(repo.getEncryptedPassword()),
                 repo.getRepository());
