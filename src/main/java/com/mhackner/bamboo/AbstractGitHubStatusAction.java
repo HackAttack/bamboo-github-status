@@ -33,6 +33,12 @@ public abstract class AbstractGitHubStatusAction {
     }
 
     void updateStatus(String status, Chain chain, ChainExecution chainExecution) {
+        String disabled = chain.getBuildDefinition().getCustomConfiguration()
+                .get("custom.gitHubStatus.disabled");
+        if (Boolean.parseBoolean(disabled)) {
+            return;
+        }
+
         List<RepositoryDefinition> repos = chain.getEffectiveRepositoryDefinitions();
         if (repos.size() != 1) {
             log.warn("Wanted 1 repo but found {}. Not updating GitHub status.", repos.size());

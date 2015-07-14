@@ -10,6 +10,12 @@
     <preChainAction key="gitHubStatusPreChain" class="com.mhackner.bamboo.GitHubStatusPreChain" />
     <postChainAction key="gitHubStatusPostChain" class="com.mhackner.bamboo.GitHubStatusPostChain" />
 
+    <additionalBuildConfigurationPlugin key="configuration" class="com.mhackner.bamboo.Configuration">
+        <resource type="freemarker" name="edit" location="com/mhackner/bamboo-github-status/edit.ftl" />
+    </additionalBuildConfigurationPlugin>
+
+    <resource type="i18n" name="strings" location="com.mhackner.bamboo-github-status.strings" />
+
     <component-import key="applicationProperties" interface="com.atlassian.sal.api.ApplicationProperties" />
     <component-import key="encryptionService" interface="com.atlassian.bamboo.security.EncryptionService" />
 </atlassian-plugin>
