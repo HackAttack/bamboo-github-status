@@ -7,8 +7,8 @@ import com.atlassian.bamboo.chains.plugins.PostChainAction;
 import com.atlassian.bamboo.security.EncryptionService;
 import com.atlassian.sal.api.ApplicationProperties;
 
-import org.eclipse.egit.github.core.CommitStatus;
 import org.jetbrains.annotations.NotNull;
+import org.kohsuke.github.GHCommitState;
 
 public class GitHubStatusPostChain extends AbstractGitHubStatusAction implements PostChainAction {
 
@@ -22,13 +22,13 @@ public class GitHubStatusPostChain extends AbstractGitHubStatusAction implements
                         @NotNull ChainExecution chainExecution) {
         switch (chainResultsSummary.getBuildState()) {
         case FAILED:
-            updateStatus(CommitStatus.STATE_FAILURE, chain, chainExecution);
+            updateStatus(GHCommitState.FAILURE, chain, chainExecution);
             break;
         case SUCCESS:
-            updateStatus(CommitStatus.STATE_SUCCESS, chain, chainExecution);
+            updateStatus(GHCommitState.SUCCESS, chain, chainExecution);
             break;
         case UNKNOWN:
-            updateStatus(CommitStatus.STATE_ERROR, chain, chainExecution);
+            updateStatus(GHCommitState.ERROR, chain, chainExecution);
             break;
         }
     }

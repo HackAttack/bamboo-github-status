@@ -6,8 +6,8 @@ import com.atlassian.bamboo.chains.plugins.PreChainAction;
 import com.atlassian.bamboo.security.EncryptionService;
 import com.atlassian.sal.api.ApplicationProperties;
 
-import org.eclipse.egit.github.core.CommitStatus;
 import org.jetbrains.annotations.NotNull;
+import org.kohsuke.github.GHCommitState;
 
 public class GitHubStatusPreChain extends AbstractGitHubStatusAction implements PreChainAction {
 
@@ -18,7 +18,7 @@ public class GitHubStatusPreChain extends AbstractGitHubStatusAction implements 
 
     @Override
     public void execute(@NotNull Chain chain, @NotNull ChainExecution chainExecution) {
-        updateStatus(CommitStatus.STATE_PENDING, chain, chainExecution);
+        updateStatus(GHCommitState.PENDING, chain, chainExecution);
     }
 
 }

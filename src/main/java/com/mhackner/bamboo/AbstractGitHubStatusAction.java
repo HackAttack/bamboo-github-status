@@ -9,10 +9,9 @@ import com.atlassian.bamboo.util.Narrow;
 import com.atlassian.sal.api.ApplicationProperties;
 
 import org.apache.commons.lang.StringUtils;
-import org.eclipse.egit.github.core.CommitStatus;
-import org.eclipse.egit.github.core.RepositoryId;
-import org.eclipse.egit.github.core.client.GitHubClient;
-import org.eclipse.egit.github.core.service.CommitService;
+import org.kohsuke.github.GHCommitState;
+import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GitHub;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +31,7 @@ public abstract class AbstractGitHubStatusAction {
         this.encryptionService = encryptionService;
     }
 
-    void updateStatus(String status, Chain chain, ChainExecution chainExecution) {
+    void updateStatus(GHCommitState status, Chain chain, ChainExecution chainExecution) {
         String disabled = chain.getBuildDefinition().getCustomConfiguration()
                 .get("custom.gitHubStatus.disabled");
         if (Boolean.parseBoolean(disabled)) {
@@ -65,15 +64,12 @@ public abstract class AbstractGitHubStatusAction {
                 repo.getRepository());
     }
 
-    private static void setStatus(String status, String sha, String url, String user, String pass,
-                                  String repo) {
-        GitHubClient client = new GitHubClient().setCredentials(user, pass);
-        CommitService commitService = new CommitService(client);
-        CommitStatus commitStatus = new CommitStatus()
-                .setState(status)
-                .setTargetUrl(url);
+    private static void setStatus(GHCommitState status, String sha, String url, String user,
+                                  String pass, String repo) {
         try {
-            commitService.createStatus(RepositoryId.createFromId(repo), sha, commitStatus);
+            GitHub gitHub = GitHub.connectUsingPassword(user, pass);
+            GHRepository repository = gitHub.getRepository(repo);
+            repository.createCommitStatus(sha, status, url, null);
             log.info("GitHub status for commit {} set to {}.", sha, status);
         } catch (IOException ex) {
             log.error("Failed to update GitHub status", ex);
