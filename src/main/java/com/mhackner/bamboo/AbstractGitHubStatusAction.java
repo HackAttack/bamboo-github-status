@@ -69,6 +69,7 @@ public abstract class AbstractGitHubStatusAction {
         try {
             GitHub gitHub = GitHub.connectUsingPassword(user, pass);
             GHRepository repository = gitHub.getRepository(repo);
+            sha = repository.getCommit(sha).getSHA1();
             repository.createCommitStatus(sha, status, url, null);
             log.info("GitHub status for commit {} set to {}.", sha, status);
         } catch (IOException ex) {
