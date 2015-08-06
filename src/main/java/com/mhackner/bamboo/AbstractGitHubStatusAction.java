@@ -2,13 +2,13 @@ package com.mhackner.bamboo;
 
 import com.atlassian.bamboo.chains.Chain;
 import com.atlassian.bamboo.chains.ChainExecution;
+import com.atlassian.bamboo.configuration.AdministrationConfigurationAccessor;
 import com.atlassian.bamboo.plugins.git.GitHubRepository;
 import com.atlassian.bamboo.repository.RepositoryDefinition;
 import com.atlassian.bamboo.security.EncryptionService;
 import com.atlassian.bamboo.util.Narrow;
-import com.atlassian.sal.api.ApplicationProperties;
+import com.atlassian.bamboo.utils.BambooUrl;
 
-import org.apache.commons.lang.StringUtils;
 import org.kohsuke.github.GHCommitState;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
@@ -22,13 +22,13 @@ public abstract class AbstractGitHubStatusAction {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractGitHubStatusAction.class);
 
-    private final ApplicationProperties applicationProperties;
     private final EncryptionService encryptionService;
+    private final BambooUrl bambooUrl;
 
-    public AbstractGitHubStatusAction(ApplicationProperties applicationProperties,
-                                      EncryptionService encryptionService) {
-        this.applicationProperties = applicationProperties;
+    AbstractGitHubStatusAction(AdministrationConfigurationAccessor adminConfigAccessor,
+                               EncryptionService encryptionService) {
         this.encryptionService = encryptionService;
+        bambooUrl = new BambooUrl(adminConfigAccessor);
     }
 
     void updateStatus(GHCommitState status, Chain chain, ChainExecution chainExecution) {
@@ -54,10 +54,8 @@ public abstract class AbstractGitHubStatusAction {
 
         String sha = chainExecution.getBuildChanges().getVcsRevisionKey(repoDefinition.getId());
 
-        @SuppressWarnings("deprecation")
-        String url = String.format("%s/browse/%s",
-                StringUtils.removeEnd(applicationProperties.getBaseUrl(), "/"),
-                chainExecution.getPlanResultKey());
+        String url = bambooUrl.withBaseUrlFromConfiguration(
+                "/browse/" + chainExecution.getPlanResultKey());
 
         setStatus(status, sha, url, repo.getUsername(),
                 encryptionService.decrypt(repo.getEncryptedPassword()),

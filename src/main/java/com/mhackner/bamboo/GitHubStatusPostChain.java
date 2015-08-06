@@ -4,17 +4,17 @@ import com.atlassian.bamboo.chains.Chain;
 import com.atlassian.bamboo.chains.ChainExecution;
 import com.atlassian.bamboo.chains.ChainResultsSummary;
 import com.atlassian.bamboo.chains.plugins.PostChainAction;
+import com.atlassian.bamboo.configuration.AdministrationConfigurationAccessor;
 import com.atlassian.bamboo.security.EncryptionService;
-import com.atlassian.sal.api.ApplicationProperties;
 
 import org.jetbrains.annotations.NotNull;
 import org.kohsuke.github.GHCommitState;
 
 public class GitHubStatusPostChain extends AbstractGitHubStatusAction implements PostChainAction {
 
-    public GitHubStatusPostChain(ApplicationProperties applicationProperties,
+    public GitHubStatusPostChain(AdministrationConfigurationAccessor adminConfigAccessor,
                                  EncryptionService encryptionService) {
-        super(applicationProperties, encryptionService);
+        super(adminConfigAccessor, encryptionService);
     }
 
     @Override
