@@ -8,6 +8,8 @@ import com.atlassian.bamboo.repository.RepositoryDefinition;
 import com.atlassian.bamboo.security.EncryptionService;
 import com.atlassian.bamboo.util.Narrow;
 import com.atlassian.bamboo.utils.BambooUrl;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 import org.kohsuke.github.GHCommitState;
 import org.kohsuke.github.GHRepository;
@@ -32,34 +34,40 @@ public abstract class AbstractGitHubStatusAction {
     }
 
     void updateStatus(GHCommitState status, Chain chain, ChainExecution chainExecution) {
-        String disabled = chain.getBuildDefinition().getCustomConfiguration()
-                .get("custom.gitHubStatus.disabled");
-        if (Boolean.parseBoolean(disabled)) {
-            return;
-        }
-
         List<RepositoryDefinition> repos = chain.getEffectiveRepositoryDefinitions();
-        if (repos.size() != 1) {
-            log.warn("Wanted 1 repo but found {}. Not updating GitHub status.", repos.size());
-            return;
+        String configuredRepos = chain.getBuildDefinition()
+                .getCustomConfiguration().get(Configuration.CONFIG_KEY);
+
+        if (configuredRepos == null) {
+            // TODO duplicative with Configuration
+            List<RepositoryDefinition> ghRepos = Configuration.ghReposFrom(chain);
+            configuredRepos = Lists.transform(ghRepos,
+                    new Function<RepositoryDefinition, Long>() {
+                        @Override
+                        public Long apply(RepositoryDefinition input) {
+                            return input.getId();
+                        }
+                    }).toString();
         }
 
-        RepositoryDefinition repoDefinition = repos.get(0);
-        GitHubRepository repo = Narrow.downTo(repoDefinition.getRepository(),
-                GitHubRepository.class);
-        if (repo == null) {
-            log.info("Repo {} is not a GitHub repo.", repoDefinition.getName());
-            return;
+        for (RepositoryDefinition repo : repos) {
+            if (configuredRepos.contains(Long.toString(repo.getId()))) {
+                GitHubRepository ghRepo = Narrow.downTo(repo.getRepository(),
+                        GitHubRepository.class);
+                assert ghRepo != null; // only GitHub repos are selectable in the UI
+                String sha = chainExecution.getBuildChanges().getVcsRevisionKey(repo.getId());
+                if (sha == null) {
+                    return;
+                }
+
+                String url = bambooUrl.withBaseUrlFromConfiguration(
+                        "/browse/" + chainExecution.getPlanResultKey());
+
+                setStatus(status, sha, url, ghRepo.getUsername(),
+                        encryptionService.decrypt(ghRepo.getEncryptedPassword()),
+                        ghRepo.getRepository());
+            }
         }
-
-        String sha = chainExecution.getBuildChanges().getVcsRevisionKey(repoDefinition.getId());
-
-        String url = bambooUrl.withBaseUrlFromConfiguration(
-                "/browse/" + chainExecution.getPlanResultKey());
-
-        setStatus(status, sha, url, repo.getUsername(),
-                encryptionService.decrypt(repo.getEncryptedPassword()),
-                repo.getRepository());
     }
 
     private static void setStatus(GHCommitState status, String sha, String url, String user,

@@ -1,4 +1,8 @@
-[@ui.bambooSection titleKey='com.mhackner.bamboo-github-status.heading']
-    [@ww.checkbox name='custom.gitHubStatus.disabled'
-                  labelKey='com.mhackner.bamboo-github-status.disable' /]
+[@ui.bambooSection titleKey='com.mhackner.bamboo-github-status.heading'
+                   descriptionKey='com.mhackner.bamboo-github-status.repositories']
+    [@ww.checkboxlist name='custom.gitHubStatus.repositories'
+                      list=gitHubRepositories
+                      nameValue=buildConfiguration.getProperty('custom.gitHubStatus.repositories')
+                      listKey='id'
+                      listValue='name' /]
 [/@ui.bambooSection]
