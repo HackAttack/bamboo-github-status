@@ -7,8 +7,8 @@
         <param name="plugin-logo">images/pluginLogo.png</param>
     </plugin-info>
 
-    <preChainAction key="gitHubStatusPreChain" class="com.mhackner.bamboo.GitHubStatusPreChain" />
-    <postChainAction key="gitHubStatusPostChain" class="com.mhackner.bamboo.GitHubStatusPostChain" />
+    <preStageAction key="gitHubStatusPreStage" class="com.mhackner.bamboo.GitHubStatusPreStage" />
+    <postStageAction key="gitHubStatusPostStage" class="com.mhackner.bamboo.GitHubStatusPostStage" />
 
     <additionalBuildConfigurationPlugin key="configuration" class="com.mhackner.bamboo.Configuration">
         <resource type="freemarker" name="edit" location="com/mhackner/bamboo-github-status/edit.ftl" />

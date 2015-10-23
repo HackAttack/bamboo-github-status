@@ -1,10 +1,14 @@
 package com.mhackner.bamboo;
 
-import com.atlassian.bamboo.chains.Chain;
 import com.atlassian.bamboo.chains.ChainExecution;
+import com.atlassian.bamboo.chains.StageExecution;
 import com.atlassian.bamboo.configuration.AdministrationConfigurationAccessor;
+import com.atlassian.bamboo.plan.Plan;
+import com.atlassian.bamboo.plan.PlanKey;
+import com.atlassian.bamboo.plan.PlanManager;
 import com.atlassian.bamboo.plugins.git.GitHubRepository;
 import com.atlassian.bamboo.repository.RepositoryDefinition;
+import com.atlassian.bamboo.repository.RepositoryDefinitionManager;
 import com.atlassian.bamboo.security.EncryptionService;
 import com.atlassian.bamboo.util.Narrow;
 import com.atlassian.bamboo.utils.BambooUrl;
@@ -26,21 +30,32 @@ public abstract class AbstractGitHubStatusAction {
 
     private final EncryptionService encryptionService;
     private final BambooUrl bambooUrl;
+    private final RepositoryDefinitionManager repositoryDefinitionManager;
+    private final PlanManager planManager;
 
     AbstractGitHubStatusAction(AdministrationConfigurationAccessor adminConfigAccessor,
-                               EncryptionService encryptionService) {
+                               EncryptionService encryptionService,
+                               RepositoryDefinitionManager repositoryDefinitionManager,
+                               PlanManager planManager) {
         this.encryptionService = encryptionService;
         bambooUrl = new BambooUrl(adminConfigAccessor);
+        this.repositoryDefinitionManager = repositoryDefinitionManager;
+        this.planManager = planManager;
     }
 
-    void updateStatus(GHCommitState status, Chain chain, ChainExecution chainExecution) {
-        List<RepositoryDefinition> repos = chain.getEffectiveRepositoryDefinitions();
-        String configuredRepos = chain.getBuildDefinition()
-                .getCustomConfiguration().get(Configuration.CONFIG_KEY);
+    void updateStatus(GHCommitState status, StageExecution stageExecution) {
+        ChainExecution chainExecution = stageExecution.getChainExecution();
+        PlanKey planKey = chainExecution.getPlanResultKey().getPlanKey();
+        Plan plan = planManager.getPlanByKey(planKey);
+        assert plan != null;
+        List<RepositoryDefinition> repos = repositoryDefinitionManager
+                .getRepositoryDefinitionsForPlan(plan);
+        String configuredRepos = plan.getBuildDefinition().getCustomConfiguration()
+                .get(Configuration.CONFIG_KEY);
 
         if (configuredRepos == null) {
             // TODO duplicative with Configuration
-            List<RepositoryDefinition> ghRepos = Configuration.ghReposFrom(chain);
+            List<RepositoryDefinition> ghRepos = Configuration.ghReposFrom(plan);
             configuredRepos = Lists.transform(ghRepos,
                     new Function<RepositoryDefinition, Long>() {
                         @Override
@@ -65,19 +80,19 @@ public abstract class AbstractGitHubStatusAction {
 
                 setStatus(status, sha, url, ghRepo.getUsername(),
                         encryptionService.decrypt(ghRepo.getEncryptedPassword()),
-                        ghRepo.getRepository());
+                        ghRepo.getRepository(), stageExecution.getName());
             }
         }
     }
 
     private static void setStatus(GHCommitState status, String sha, String url, String user,
-                                  String pass, String repo) {
+                                  String pass, String repo, String context) {
         try {
             GitHub gitHub = GitHub.connectUsingPassword(user, pass);
             GHRepository repository = gitHub.getRepository(repo);
             sha = repository.getCommit(sha).getSHA1();
-            repository.createCommitStatus(sha, status, url, null);
-            log.info("GitHub status for commit {} set to {}.", sha, status);
+            repository.createCommitStatus(sha, status, url, null, context);
+            log.info("GitHub status for commit {} ({}) set to {}.", sha, context, status);
         } catch (IOException ex) {
             log.error("Failed to update GitHub status", ex);
         }
