@@ -12,12 +12,14 @@ import com.atlassian.bamboo.repository.RepositoryDefinitionManager;
 import com.atlassian.bamboo.security.EncryptionService;
 import com.atlassian.bamboo.util.Narrow;
 import com.atlassian.bamboo.utils.BambooUrl;
+import com.atlassian.bamboo.utils.SystemProperty;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 import org.kohsuke.github.GHCommitState;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.GitHubBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +29,9 @@ import java.util.List;
 public abstract class AbstractGitHubStatusAction {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractGitHubStatusAction.class);
+
+    private static final String githubEndpoint = new SystemProperty(false, "atlassian.bamboo.github.api.base.url",
+            "ATLASSIAN_BAMBOO_GITHUB_API_BASE_URL").getValue("https://api.github.com/");
 
     private final EncryptionService encryptionService;
     private final BambooUrl bambooUrl;
@@ -88,7 +93,7 @@ public abstract class AbstractGitHubStatusAction {
     private static void setStatus(GHCommitState status, String sha, String url, String user,
                                   String pass, String repo, String context) {
         try {
-            GitHub gitHub = GitHub.connectUsingPassword(user, pass);
+            GitHub gitHub = new GitHubBuilder().withEndpoint(githubEndpoint).withPassword(user, pass).build();
             GHRepository repository = gitHub.getRepository(repo);
             sha = repository.getCommit(sha).getSHA1();
             repository.createCommitStatus(sha, status, url, null, context);
