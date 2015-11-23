@@ -1,10 +1,12 @@
 package com.mhackner.bamboo;
 
-import com.atlassian.bamboo.plan.AbstractChain;
 import com.atlassian.bamboo.plan.Plan;
 import com.atlassian.bamboo.plan.TopLevelPlan;
+import com.atlassian.bamboo.plan.cache.ImmutableChain;
+import com.atlassian.bamboo.plan.cache.ImmutablePlan;
 import com.atlassian.bamboo.plugins.git.GitHubRepository;
 import com.atlassian.bamboo.repository.RepositoryDefinition;
+import com.atlassian.bamboo.util.Narrow;
 import com.atlassian.bamboo.v2.build.BaseBuildConfigurationAwarePlugin;
 import com.atlassian.bamboo.v2.build.configuration.MiscellaneousBuildConfigurationPlugin;
 import com.atlassian.bamboo.ww2.actions.build.admin.create.BuildConfiguration;
@@ -17,6 +19,7 @@ import com.google.common.collect.Lists;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -36,7 +39,7 @@ public class Configuration extends BaseBuildConfigurationAwarePlugin
     @Override
     public void addDefaultValues(@NotNull BuildConfiguration buildConfiguration) {
         buildConfiguration.setProperty(CONFIG_KEY, Lists.transform(
-                ghReposFrom(plan),
+                ghRepoDefinitionsFor(plan),
                 new Function<RepositoryDefinition, Long>() {
                     @Override
                     public Long apply(RepositoryDefinition input) {
@@ -54,7 +57,7 @@ public class Configuration extends BaseBuildConfigurationAwarePlugin
     protected void populateContextForEdit(@NotNull Map<String, Object> context,
                                           @NotNull BuildConfiguration buildConfiguration,
                                           Plan plan) {
-        context.put("gitHubRepositories", Iterables.toArray(ghReposFrom(plan),
+        context.put("gitHubRepositories", Iterables.toArray(ghRepoDefinitionsFor(plan),
                 RepositoryDefinition.class));
     }
 
@@ -66,7 +69,7 @@ public class Configuration extends BaseBuildConfigurationAwarePlugin
         }
     }
 
-    private static List<Long> toList(Object object) {
+    static List<Long> toList(Object object) {
         String string = object.toString();
         if (string.equals("false") || string.equals("[]")) {
             return ImmutableList.of();
@@ -83,9 +86,22 @@ public class Configuration extends BaseBuildConfigurationAwarePlugin
         });
     }
 
-    static List<RepositoryDefinition> ghReposFrom(Plan plan) {
+    static List<GitHubRepository> ghReposFor(ImmutablePlan plan) {
+        ArrayList<GitHubRepository> repos = Lists.newArrayList();
+        for (RepositoryDefinition repositoryDefinition : ghRepoDefinitionsFor(plan)) {
+            final GitHubRepository repository = Narrow.downTo(repositoryDefinition.getRepository(),
+                    GitHubRepository.class);
+            if (repository != null) {
+                repos.add(repository);
+            }
+        }
+
+        return repos;
+    }
+
+    static List<RepositoryDefinition> ghRepoDefinitionsFor(ImmutablePlan plan) {
         return ImmutableList.copyOf(Iterables.filter(
-                ((AbstractChain) plan).getEffectiveRepositoryDefinitions(),
+                ((ImmutableChain) plan).getEffectiveRepositoryDefinitions(),
                 new Predicate<RepositoryDefinition>() {
                     @Override
                     public boolean apply(RepositoryDefinition input) {
