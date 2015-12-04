@@ -14,6 +14,8 @@ import com.atlassian.bamboo.util.Narrow;
 import com.atlassian.bamboo.utils.BambooUrl;
 import com.atlassian.bamboo.utils.SystemProperty;
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import org.kohsuke.github.GHCommitState;
@@ -70,9 +72,23 @@ public abstract class AbstractGitHubStatusAction {
                     }).toString();
         }
 
-        for (RepositoryDefinition repo : repos) {
-            if (configuredRepos.contains(Long.toString(repo.getId()))) {
-                GitHubRepository ghRepo = Narrow.downTo(repo.getRepository(),
+        for (final RepositoryDefinition repo : repos) {
+            RepositoryDefinition topLevelRepo;
+            if (plan.hasMaster()) {
+                topLevelRepo = Iterables.find(
+                        repositoryDefinitionManager.getRepositoryDefinitionsForPlan(plan.getMaster()),
+                        new Predicate<RepositoryDefinition>() {
+                            @Override
+                            public boolean apply(RepositoryDefinition input) {
+                                return input.getName().equals(repo.getName());
+                            }
+                        });
+            } else {
+                topLevelRepo = repo;
+            }
+
+            if (configuredRepos.contains(Long.toString(topLevelRepo.getId()))) {
+                GitHubRepository ghRepo = Narrow.downTo(topLevelRepo.getRepository(),
                         GitHubRepository.class);
                 assert ghRepo != null; // only GitHub repos are selectable in the UI
                 String sha = chainExecution.getBuildChanges().getVcsRevisionKey(repo.getId());
