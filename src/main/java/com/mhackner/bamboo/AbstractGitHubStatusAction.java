@@ -62,7 +62,8 @@ public abstract class AbstractGitHubStatusAction {
 
         if (configuredRepos == null) {
             // TODO duplicative with Configuration
-            List<RepositoryDefinition> ghRepos = Configuration.ghReposFrom(plan);
+            List<RepositoryDefinition> ghRepos = Configuration.ghReposFrom(
+                    plan.hasMaster() ? plan.getMaster() : plan);
             configuredRepos = Lists.transform(ghRepos,
                     new Function<RepositoryDefinition, Long>() {
                         @Override
