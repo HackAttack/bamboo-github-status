@@ -13,10 +13,8 @@ import com.atlassian.bamboo.security.EncryptionService;
 import com.atlassian.bamboo.util.Narrow;
 import com.atlassian.bamboo.utils.BambooUrl;
 import com.atlassian.bamboo.utils.SystemProperty;
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 import org.kohsuke.github.GHCommitState;
 import org.kohsuke.github.GHRepository;
@@ -60,19 +58,6 @@ public abstract class AbstractGitHubStatusAction {
         String configuredRepos = plan.getBuildDefinition().getCustomConfiguration()
                 .get(Configuration.CONFIG_KEY);
 
-        if (configuredRepos == null) {
-            // TODO duplicative with Configuration
-            List<RepositoryDefinition> ghRepos = Configuration.ghReposFrom(
-                    plan.hasMaster() ? plan.getMaster() : plan);
-            configuredRepos = Lists.transform(ghRepos,
-                    new Function<RepositoryDefinition, Long>() {
-                        @Override
-                        public Long apply(RepositoryDefinition input) {
-                            return input.getId();
-                        }
-                    }).toString();
-        }
-
         for (final RepositoryDefinition repo : repos) {
             RepositoryDefinition topLevelRepo;
             if (plan.hasMaster()) {
@@ -88,7 +73,8 @@ public abstract class AbstractGitHubStatusAction {
                 topLevelRepo = repo;
             }
 
-            if (configuredRepos.contains(Long.toString(topLevelRepo.getId()))) {
+            if (configuredRepos == null
+                    || configuredRepos.contains(Long.toString(topLevelRepo.getId()))) {
                 GitHubRepository ghRepo = Narrow.downTo(topLevelRepo.getRepository(),
                         GitHubRepository.class);
                 assert ghRepo != null; // only GitHub repos are selectable in the UI
