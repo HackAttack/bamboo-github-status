@@ -8,7 +8,6 @@ import com.atlassian.bamboo.chains.StageExecution;
 import com.atlassian.bamboo.chains.plugins.PostStageAction;
 import com.atlassian.bamboo.configuration.AdministrationConfigurationAccessor;
 import com.atlassian.bamboo.plan.PlanManager;
-import com.atlassian.bamboo.repository.RepositoryDefinitionManager;
 import com.atlassian.bamboo.security.EncryptionService;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
@@ -20,9 +19,8 @@ public class GitHubStatusPostStage extends AbstractGitHubStatusAction implements
 
     public GitHubStatusPostStage(AdministrationConfigurationAccessor adminConfigAccessor,
                                  EncryptionService encryptionService,
-                                 RepositoryDefinitionManager repositoryDefinitionManager,
                                  PlanManager planManager) {
-        super(adminConfigAccessor, encryptionService, repositoryDefinitionManager, planManager);
+        super(adminConfigAccessor, encryptionService, planManager);
     }
 
     @Override

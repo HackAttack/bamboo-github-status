@@ -3,14 +3,13 @@ package com.mhackner.bamboo;
 import com.atlassian.bamboo.chains.ChainExecution;
 import com.atlassian.bamboo.chains.StageExecution;
 import com.atlassian.bamboo.configuration.AdministrationConfigurationAccessor;
-import com.atlassian.bamboo.plan.Plan;
 import com.atlassian.bamboo.plan.PlanKey;
 import com.atlassian.bamboo.plan.PlanManager;
+import com.atlassian.bamboo.plan.PlanResultKey;
+import com.atlassian.bamboo.plan.cache.ImmutableChain;
 import com.atlassian.bamboo.plugins.git.GitHubRepository;
 import com.atlassian.bamboo.repository.RepositoryDefinition;
-import com.atlassian.bamboo.repository.RepositoryDefinitionManager;
 import com.atlassian.bamboo.security.EncryptionService;
-import com.atlassian.bamboo.util.Narrow;
 import com.atlassian.bamboo.utils.BambooUrl;
 import com.atlassian.bamboo.utils.SystemProperty;
 import com.google.common.base.Predicate;
@@ -23,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.List;
 
 public abstract class AbstractGitHubStatusAction {
 
@@ -35,69 +33,61 @@ public abstract class AbstractGitHubStatusAction {
 
     private final EncryptionService encryptionService;
     private final BambooUrl bambooUrl;
-    private final RepositoryDefinitionManager repositoryDefinitionManager;
     private final PlanManager planManager;
 
     AbstractGitHubStatusAction(AdministrationConfigurationAccessor adminConfigAccessor,
                                EncryptionService encryptionService,
-                               RepositoryDefinitionManager repositoryDefinitionManager,
                                PlanManager planManager) {
         this.encryptionService = encryptionService;
         bambooUrl = new BambooUrl(adminConfigAccessor);
-        this.repositoryDefinitionManager = repositoryDefinitionManager;
         this.planManager = planManager;
     }
 
     void updateStatus(GHCommitState status, StageExecution stageExecution) {
         ChainExecution chainExecution = stageExecution.getChainExecution();
-        PlanKey planKey = chainExecution.getPlanResultKey().getPlanKey();
-        Plan plan = planManager.getPlanByKey(planKey);
-        assert plan != null;
-        List<RepositoryDefinition> repos = repositoryDefinitionManager
-                .getRepositoryDefinitionsForPlan(plan);
-        String configuredRepos = plan.getBuildDefinition().getCustomConfiguration()
-                .get(Configuration.CONFIG_KEY);
+        PlanResultKey planResultKey = chainExecution.getPlanResultKey();
+        PlanKey planKey = planResultKey.getPlanKey();
+        ImmutableChain chain = (ImmutableChain) planManager.getPlanByKey(planKey);
 
-        for (final RepositoryDefinition repo : repos) {
-            RepositoryDefinition topLevelRepo;
-            if (plan.hasMaster()) {
-                topLevelRepo = Iterables.find(
-                        repositoryDefinitionManager.getRepositoryDefinitionsForPlan(plan.getMaster()),
-                        new Predicate<RepositoryDefinition>() {
-                            @Override
-                            public boolean apply(RepositoryDefinition input) {
-                                return input.getName().equals(repo.getName());
-                            }
-                        });
-            } else {
-                topLevelRepo = repo;
-            }
-
-            if (configuredRepos == null
-                    || configuredRepos.contains(Long.toString(topLevelRepo.getId()))) {
-                GitHubRepository ghRepo = Narrow.downTo(topLevelRepo.getRepository(),
-                        GitHubRepository.class);
-                assert ghRepo != null; // only GitHub repos are selectable in the UI
+        for (RepositoryDefinition repo : Configuration.ghReposFrom(chain)) {
+            if (shouldUpdateRepo(chain, repo)) {
                 String sha = chainExecution.getBuildChanges().getVcsRevisionKey(repo.getId());
-                if (sha == null) {
-                    return;
+                if (sha != null) {
+                    GitHubRepository ghRepo = (GitHubRepository) repo.getRepository();
+                    setStatus(ghRepo, status, sha, planResultKey.getKey(), stageExecution.getName());
                 }
-
-                String url = bambooUrl.withBaseUrlFromConfiguration(
-                        "/browse/" + chainExecution.getPlanResultKey());
-
-                setStatus(status, sha, url, ghRepo.getUsername(),
-                        encryptionService.decrypt(ghRepo.getEncryptedPassword()),
-                        ghRepo.getRepository(), stageExecution.getName());
             }
         }
     }
 
-    private static void setStatus(GHCommitState status, String sha, String url, String user,
-                                  String pass, String repo, String context) {
+    private static boolean shouldUpdateRepo(ImmutableChain chain, final RepositoryDefinition repo) {
+        String config = chain.getBuildDefinition().getCustomConfiguration()
+                .get(Configuration.CONFIG_KEY);
+        if (config == null) {
+            return true;
+        } else {
+            RepositoryDefinition repoToCheck = chain.hasMaster()
+                    ? Iterables.find(
+                            chain.getMaster().getEffectiveRepositoryDefinitions(),
+                            new Predicate<RepositoryDefinition>() {
+                                @Override
+                                public boolean apply(RepositoryDefinition input) {
+                                    return input.getName().equals(repo.getName());
+                                }
+                            })
+                    : repo;
+
+            return config.contains(Long.toString(repoToCheck.getId()));
+        }
+    }
+
+    private void setStatus(GitHubRepository repo, GHCommitState status, String sha,
+                           String planResultKey, String context) {
+        String url = bambooUrl.withBaseUrlFromConfiguration("/browse/" + planResultKey);
         try {
-            GitHub gitHub = GitHub.connectToEnterprise(gitHubEndpoint, user, pass);
-            GHRepository repository = gitHub.getRepository(repo);
+            GitHub gitHub = GitHub.connectToEnterprise(gitHubEndpoint, repo.getUsername(),
+                    encryptionService.decrypt(repo.getEncryptedPassword()));
+            GHRepository repository = gitHub.getRepository(repo.getRepository());
             sha = repository.getCommit(sha).getSHA1();
             repository.createCommitStatus(sha, status, url, null, context);
             log.info("GitHub status for commit {} ({}) set to {}.", sha, context, status);
