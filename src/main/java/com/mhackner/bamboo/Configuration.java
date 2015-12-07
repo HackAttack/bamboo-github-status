@@ -1,8 +1,8 @@
 package com.mhackner.bamboo;
 
-import com.atlassian.bamboo.plan.AbstractChain;
 import com.atlassian.bamboo.plan.Plan;
 import com.atlassian.bamboo.plan.TopLevelPlan;
+import com.atlassian.bamboo.plan.cache.ImmutableChain;
 import com.atlassian.bamboo.plan.cache.ImmutablePlan;
 import com.atlassian.bamboo.plugins.git.GitHubRepository;
 import com.atlassian.bamboo.repository.RepositoryDefinition;
@@ -86,7 +86,7 @@ public class Configuration extends BaseBuildConfigurationAwarePlugin
 
     static List<RepositoryDefinition> ghReposFrom(ImmutablePlan plan) {
         return ImmutableList.copyOf(Iterables.filter(
-                ((AbstractChain) plan).getEffectiveRepositoryDefinitions(),
+                ((ImmutableChain) plan).getEffectiveRepositoryDefinitions(),
                 new Predicate<RepositoryDefinition>() {
                     @Override
                     public boolean apply(RepositoryDefinition input) {

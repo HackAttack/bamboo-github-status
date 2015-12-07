@@ -68,7 +68,7 @@ public abstract class AbstractGitHubStatusAction {
         } else {
             RepositoryDefinition repoToCheck = chain.hasMaster()
                     ? Iterables.find(
-                            chain.getMaster().getEffectiveRepositoryDefinitions(),
+                            Configuration.ghReposFrom(chain.getMaster()),
                             new Predicate<RepositoryDefinition>() {
                                 @Override
                                 public boolean apply(RepositoryDefinition input) {
