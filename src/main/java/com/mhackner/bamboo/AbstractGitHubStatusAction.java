@@ -64,7 +64,8 @@ public abstract class AbstractGitHubStatusAction {
         String config = chain.getBuildDefinition().getCustomConfiguration()
                 .get(Configuration.CONFIG_KEY);
         if (config == null) {
-            return true;
+            // TODO duplicative with configuration
+            return repo.getPosition() == 0;
         } else {
             RepositoryDefinition repoToCheck = chain.hasMaster()
                     ? Iterables.find(

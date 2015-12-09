@@ -3,9 +3,11 @@ package com.mhackner.bamboo
 import spock.lang.Specification
 
 import com.atlassian.bamboo.build.BuildDefinition
+import com.atlassian.bamboo.plan.AbstractChain
 import com.atlassian.bamboo.plan.cache.ImmutableChain
 import com.atlassian.bamboo.plugins.git.GitHubRepository
 import com.atlassian.bamboo.repository.RepositoryDefinition
+import com.atlassian.bamboo.ww2.actions.build.admin.create.BuildConfiguration
 
 class GitHubStatusTest extends Specification {
 
@@ -118,6 +120,52 @@ class GitHubStatusTest extends Specification {
 
         then:
         thrown(NoSuchElementException)
+    }
+
+    def 'only default repo chosen with no config'() {
+        RepositoryDefinition repo1 = Stub {
+            getPosition() >> 0
+        }
+        RepositoryDefinition repo2 = Stub {
+            getPosition() >> 1
+        }
+        ImmutableChain chain = Stub {
+            getBuildDefinition() >> Stub(BuildDefinition) {
+                getCustomConfiguration() >> [:]
+            }
+        }
+
+        expect:
+        AbstractGitHubStatusAction.shouldUpdateRepo(chain, repo1)
+        !AbstractGitHubStatusAction.shouldUpdateRepo(chain, repo2)
+    }
+
+    def 'only default repo selected in UI with no config'() {
+        RepositoryDefinition repo1 = Stub {
+            getId() >> 123L
+            getPosition() >> 0
+            getRepository() >> new GitHubRepository()
+        }
+        RepositoryDefinition repo2 = Stub {
+            getId() >> 124L
+            getPosition() >> 1
+            getRepository() >> new GitHubRepository()
+        }
+        AbstractChain chain = Stub {
+            getEffectiveRepositoryDefinitions() >> [repo1, repo2]
+            getBuildDefinition() >> Stub(BuildDefinition) {
+                getCustomConfiguration() >> [:]
+            }
+        }
+        Configuration config = new Configuration()
+        config.plan = chain
+        BuildConfiguration buildConfiguration = new BuildConfiguration()
+
+        when:
+        config.addDefaultValues(buildConfiguration)
+
+        then:
+        buildConfiguration.getProperty(Configuration.CONFIG_KEY) == [123L]
     }
 
 }

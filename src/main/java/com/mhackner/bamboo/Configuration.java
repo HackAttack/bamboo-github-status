@@ -36,14 +36,18 @@ public class Configuration extends BaseBuildConfigurationAwarePlugin
 
     @Override
     public void addDefaultValues(@NotNull BuildConfiguration buildConfiguration) {
-        buildConfiguration.setProperty(CONFIG_KEY, Lists.transform(
+        RepositoryDefinition repo = Iterables.find(
                 ghReposFrom(plan),
-                new Function<RepositoryDefinition, Long>() {
+                new Predicate<RepositoryDefinition>() {
                     @Override
-                    public Long apply(RepositoryDefinition input) {
-                        return input.getId();
+                    public boolean apply(RepositoryDefinition input) {
+                        return input.getPosition() == 0;
                     }
-                }));
+                },
+                null);
+        buildConfiguration.setProperty(CONFIG_KEY, repo == null
+                ? ImmutableList.of()
+                : ImmutableList.of(repo.getId()));
     }
 
     @Override
