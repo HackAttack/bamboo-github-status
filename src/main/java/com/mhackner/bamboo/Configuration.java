@@ -26,6 +26,15 @@ public class Configuration extends BaseBuildConfigurationAwarePlugin
 
     static final String CONFIG_KEY = "custom.gitHubStatus.repositories";
 
+    /** Predicate that controls whether a repo is selected in the absence of any configuration. */
+    static final Predicate<RepositoryDefinition> DEFAULT_REPO_PREDICATE =
+            new Predicate<RepositoryDefinition>() {
+                @Override
+                public boolean apply(RepositoryDefinition input) {
+                    return input.getPosition() == 0;
+                }
+            };
+
     private Plan plan;
 
     @Override
@@ -36,15 +45,7 @@ public class Configuration extends BaseBuildConfigurationAwarePlugin
 
     @Override
     public void addDefaultValues(@NotNull BuildConfiguration buildConfiguration) {
-        RepositoryDefinition repo = Iterables.find(
-                ghReposFrom(plan),
-                new Predicate<RepositoryDefinition>() {
-                    @Override
-                    public boolean apply(RepositoryDefinition input) {
-                        return input.getPosition() == 0;
-                    }
-                },
-                null);
+        RepositoryDefinition repo = Iterables.find(ghReposFrom(plan), DEFAULT_REPO_PREDICATE, null);
         buildConfiguration.setProperty(CONFIG_KEY, repo == null
                 ? ImmutableList.of()
                 : ImmutableList.of(repo.getId()));
