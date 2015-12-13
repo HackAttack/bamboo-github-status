@@ -77,7 +77,7 @@ public abstract class AbstractGitHubStatusAction {
                             })
                     : repo;
 
-            return config.contains(Long.toString(repoToCheck.getId()));
+            return Configuration.toList(config).contains(repoToCheck.getId());
         }
     }
 

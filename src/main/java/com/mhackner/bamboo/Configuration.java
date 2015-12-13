@@ -72,7 +72,7 @@ public class Configuration extends BaseBuildConfigurationAwarePlugin
         }
     }
 
-    private static List<Long> toList(Object object) {
+    static List<Long> toList(Object object) {
         String string = object.toString();
         if (string.equals("false") || string.equals("[]")) {
             return ImmutableList.of();
