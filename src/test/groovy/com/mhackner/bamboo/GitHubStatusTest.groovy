@@ -3,6 +3,7 @@ package com.mhackner.bamboo
 import spock.lang.Specification
 
 import com.atlassian.bamboo.build.BuildDefinition
+import com.atlassian.bamboo.build.BuildDefinitionManager
 import com.atlassian.bamboo.plan.AbstractChain
 import com.atlassian.bamboo.plan.cache.ImmutableChain
 import com.atlassian.bamboo.plugins.git.GitHubRepository
@@ -157,14 +158,17 @@ class GitHubStatusTest extends Specification {
                 getCustomConfiguration() >> [:]
             }
         }
+        BuildDefinitionManager buildDefinitionManager = Mock()
         Configuration config = new Configuration()
         config.plan = chain
+        config.buildDefinitionManager = buildDefinitionManager
         BuildConfiguration buildConfiguration = new BuildConfiguration()
 
         when:
         config.addDefaultValues(buildConfiguration)
 
         then:
+        1 * buildDefinitionManager.savePlanAndDefinition(chain, buildConfiguration)
         buildConfiguration.getProperty(Configuration.CONFIG_KEY) == [123L]
     }
 

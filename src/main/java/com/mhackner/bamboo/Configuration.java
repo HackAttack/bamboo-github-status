@@ -1,5 +1,6 @@
 package com.mhackner.bamboo;
 
+import com.atlassian.bamboo.build.BuildDefinitionManager;
 import com.atlassian.bamboo.plan.Plan;
 import com.atlassian.bamboo.plan.TopLevelPlan;
 import com.atlassian.bamboo.plan.cache.ImmutableChain;
@@ -36,6 +37,11 @@ public class Configuration extends BaseBuildConfigurationAwarePlugin
             };
 
     private Plan plan;
+    private BuildDefinitionManager buildDefinitionManager;
+
+    public void setBuildDefinitionManager(BuildDefinitionManager buildDefinitionManager) {
+        this.buildDefinitionManager = buildDefinitionManager;
+    }
 
     @Override
     public boolean isApplicableTo(@NotNull Plan plan) {
@@ -49,6 +55,7 @@ public class Configuration extends BaseBuildConfigurationAwarePlugin
         buildConfiguration.setProperty(CONFIG_KEY, repo == null
                 ? ImmutableList.of()
                 : ImmutableList.of(repo.getId()));
+        buildDefinitionManager.savePlanAndDefinition(plan, buildConfiguration);
     }
 
     @Override
