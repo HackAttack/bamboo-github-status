@@ -1,6 +1,8 @@
 package com.mhackner.bamboo;
 
 import com.atlassian.bamboo.plan.Plan;
+import com.atlassian.bamboo.plan.PlanKeys;
+import com.atlassian.bamboo.plan.PlanManager;
 import com.atlassian.bamboo.plan.TopLevelPlan;
 import com.atlassian.bamboo.plan.cache.ImmutableChain;
 import com.atlassian.bamboo.plan.cache.ImmutablePlan;
@@ -35,16 +37,20 @@ public class Configuration extends BaseBuildConfigurationAwarePlugin
                 }
             };
 
-    private Plan plan;
+    private PlanManager planManager;
+
+    public void setPlanManager(PlanManager planManager) {
+        this.planManager = planManager;
+    }
 
     @Override
     public boolean isApplicableTo(@NotNull Plan plan) {
-        this.plan = plan;
         return plan instanceof TopLevelPlan;
     }
 
     @Override
     public void addDefaultValues(@NotNull BuildConfiguration buildConfiguration) {
+        Plan plan = planManager.getPlanByKey(PlanKeys.getPlanKey(buildConfiguration.getString("buildKey")));
         RepositoryDefinition repo = Iterables.find(ghReposFrom(plan), DEFAULT_REPO_PREDICATE, null);
         buildConfiguration.setProperty(CONFIG_KEY, repo == null
                 ? ImmutableList.of()

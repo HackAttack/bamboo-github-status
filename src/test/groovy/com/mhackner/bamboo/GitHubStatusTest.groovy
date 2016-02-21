@@ -4,6 +4,7 @@ import spock.lang.Specification
 
 import com.atlassian.bamboo.build.BuildDefinition
 import com.atlassian.bamboo.plan.AbstractChain
+import com.atlassian.bamboo.plan.PlanManager
 import com.atlassian.bamboo.plan.cache.ImmutableChain
 import com.atlassian.bamboo.plugins.git.GitHubRepository
 import com.atlassian.bamboo.repository.RepositoryDefinition
@@ -157,9 +158,13 @@ class GitHubStatusTest extends Specification {
                 getCustomConfiguration() >> [:]
             }
         }
+        PlanManager planManager = Stub {
+            getPlanByKey(_) >> chain
+        }
         Configuration config = new Configuration()
-        config.plan = chain
+        config.planManager = planManager
         BuildConfiguration buildConfiguration = new BuildConfiguration()
+        buildConfiguration.setProperty('buildKey', 'BUILD-KEY')
 
         when:
         config.addDefaultValues(buildConfiguration)
