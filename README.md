@@ -9,3 +9,7 @@ basis from the Miscellaneous tab. It defaults to enabled.
 GitHub Enterprise users can set an ATLASSIAN_BAMBOO_GITHUB_API_BASE_URL
 environment variable in the Bamboo startup script to get the GitHub repository
 type (and this plugin) to work.
+
+NOTE: Make sure that the user that Bamboo is using to check out your
+repositories also has write permissions, otherwise it will not be able to
+create commit statuses.
