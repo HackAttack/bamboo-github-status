@@ -9,6 +9,7 @@
 
     <preStageAction key="gitHubStatusPreStage" class="com.mhackner.bamboo.GitHubStatusPreStage" />
     <postStageAction key="gitHubStatusPostStage" class="com.mhackner.bamboo.GitHubStatusPostStage" />
+    <postChainAction key="gitHubStatusPostChain" class="com.mhackner.bamboo.GitHubStatusPostChain" />
 
     <additionalBuildConfigurationPlugin key="configuration" class="com.mhackner.bamboo.Configuration">
         <resource type="freemarker" name="edit" location="com/mhackner/bamboo-github-status/edit.ftl" />
