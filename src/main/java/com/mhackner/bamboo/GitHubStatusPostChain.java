@@ -18,6 +18,7 @@ public class GitHubStatusPostChain extends AbstractGitHubStatusAction implements
     public void execute(@NotNull Chain chain,
                         @NotNull ChainResultsSummary chainResultsSummary,
                         @NotNull ChainExecution chainExecution) {
+        updateStatus(chainExecution);
         updateStatusForMerge(chainResultsSummary, chainExecution);
     }
 }

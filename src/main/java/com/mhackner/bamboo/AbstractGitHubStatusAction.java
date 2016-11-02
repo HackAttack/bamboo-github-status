@@ -67,6 +67,12 @@ public abstract class AbstractGitHubStatusAction {
         }
     }
 
+    void updateStatus(ChainExecution chainExecution) {
+        for (StageExecution stageExecution : chainExecution.getStages()) {
+            updateStatus(stageExecution);
+        }
+    }
+
     void updateStatusForMerge(ChainResultsSummary resultsSummary, ChainExecution chainExecution) {
         MergeResultSummary mergeResultSummary = resultsSummary.getMergeResult();
         if (mergeResultSummary == null) {
@@ -102,7 +108,7 @@ public abstract class AbstractGitHubStatusAction {
     }
 
     private static GHCommitState statusOf(StageExecution stageExecution) {
-        if (stageExecution.isCompleted()) {
+        if (stageExecution.isCompleted() || stageExecution.getChainExecution().isCompleted()) {
             if (stageExecution.isSuccessful()) {
                 return GHCommitState.SUCCESS;
             } else if (Iterables.any(stageExecution.getBuilds(), new Predicate<BuildExecution>() {
