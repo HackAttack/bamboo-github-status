@@ -23,8 +23,8 @@
     </scm>
 
     <properties>
-        <bamboo.version>5.9.1</bamboo.version>
-        <bamboo.data.version>5.9.1</bamboo.data.version>
+        <bamboo.version>5.15.0.1</bamboo.version>
+        <bamboo.data.version>5.15.0.1</bamboo.data.version>
         <amps.version>6.1.2</amps.version>
         <plugin.testrunner.version>1.2.3</plugin.testrunner.version>
     </properties>
@@ -33,7 +33,7 @@
         <dependency>
             <groupId>org.kohsuke</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.69</version>
+            <version>1.84</version>
         </dependency>
         <dependency>
             <groupId>com.atlassian.bamboo</groupId>
@@ -106,7 +106,32 @@
             </plugin>
 
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.3</version>
+                <executions>
+                    <execution>
+                        <id>unpack-dependencies</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>unpack-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <excludes>META-INF/**/*</excludes>
+                            <includeArtifactIds>
+                                github-api
+                            </includeArtifactIds>
+                            <outputDirectory>${project.build.directory}/classes</outputDirectory>
+                            <overWriteReleases>true</overWriteReleases>
+                            <overWriteSnapshots>true</overWriteSnapshots>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.6.1</version>
                 <configuration>
                     <source>1.6</source>
                     <target>1.6</target>

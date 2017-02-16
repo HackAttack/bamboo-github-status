@@ -85,8 +85,7 @@ public abstract class AbstractGitHubStatusAction {
                            String planResultKey, String context) {
         String url = bambooUrl.withBaseUrlFromConfiguration("/browse/" + planResultKey);
         try {
-            GitHub gitHub = GitHub.connectToEnterprise(gitHubEndpoint, repo.getUsername(),
-                    encryptionService.decrypt(repo.getEncryptedPassword()));
+            GitHub gitHub = GitHub.connectToEnterprise(gitHubEndpoint, repo.getUsername(), repo.getPassword());
             GHRepository repository = gitHub.getRepository(repo.getRepository());
             sha = repository.getCommit(sha).getSHA1();
             repository.createCommitStatus(sha, status, url, null, context);
