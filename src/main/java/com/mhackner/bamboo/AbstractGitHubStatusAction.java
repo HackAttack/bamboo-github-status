@@ -21,8 +21,6 @@ import org.kohsuke.github.GitHub;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-
 public abstract class AbstractGitHubStatusAction {
 
     private static final Logger log = LoggerFactory.getLogger(AbstractGitHubStatusAction.class);
@@ -85,13 +83,19 @@ public abstract class AbstractGitHubStatusAction {
                            String planResultKey, String context) {
         String url = bambooUrl.withBaseUrlFromConfiguration("/browse/" + planResultKey);
         try {
-            GitHub gitHub = GitHub.connectToEnterprise(gitHubEndpoint, repo.getUsername(),
-                    encryptionService.decrypt(repo.getEncryptedPassword()));
+            String password;
+            try {
+                password = repo.getClass().getDeclaredMethod("getPassword").invoke(repo).toString();
+            } catch (NoSuchMethodException ex) {
+                password = encryptionService.decrypt(
+                        repo.getClass().getDeclaredMethod("getEncryptedPassword").invoke(repo).toString());
+            }
+            GitHub gitHub = GitHub.connectToEnterprise(gitHubEndpoint, repo.getUsername(), password);
             GHRepository repository = gitHub.getRepository(repo.getRepository());
             sha = repository.getCommit(sha).getSHA1();
             repository.createCommitStatus(sha, status, url, null, context);
             log.info("GitHub status for commit {} ({}) set to {}.", sha, context, status);
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             log.error("Failed to update GitHub status", ex);
         }
     }
