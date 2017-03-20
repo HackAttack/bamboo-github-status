@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.mhackner</groupId>
     <artifactId>bamboo-github-status</artifactId>
-    <version>1.7-SNAPSHOT</version>
+    <version>1.7</version>
 
     <organization>
         <name>Michael Hackner</name>
@@ -19,7 +19,7 @@
     <scm>
         <developerConnection>scm:git:https://github.com/HackAttack/bamboo-github-status.git</developerConnection>
         <url>https://github.com/HackAttack/bamboo-github-status</url>
-        <tag>HEAD</tag>
+        <tag>1.7</tag>
     </scm>
 
     <properties>
