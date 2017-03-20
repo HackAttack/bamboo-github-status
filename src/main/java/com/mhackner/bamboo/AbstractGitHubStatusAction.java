@@ -1,8 +1,14 @@
 package com.mhackner.bamboo;
 
+import com.atlassian.bamboo.builder.BuildState;
+import com.atlassian.bamboo.chains.BuildExecution;
 import com.atlassian.bamboo.chains.ChainExecution;
+import com.atlassian.bamboo.chains.ChainResultsSummary;
 import com.atlassian.bamboo.chains.StageExecution;
+import com.atlassian.bamboo.chains.branches.MergeResultState;
+import com.atlassian.bamboo.chains.branches.MergeResultSummary;
 import com.atlassian.bamboo.configuration.AdministrationConfigurationAccessor;
+import com.atlassian.bamboo.plan.PlanHelper;
 import com.atlassian.bamboo.plan.PlanKey;
 import com.atlassian.bamboo.plan.PlanManager;
 import com.atlassian.bamboo.plan.PlanResultKey;
@@ -41,7 +47,8 @@ public abstract class AbstractGitHubStatusAction {
         this.planManager = planManager;
     }
 
-    void updateStatus(GHCommitState status, StageExecution stageExecution) {
+    void updateStatus(StageExecution stageExecution) {
+        GHCommitState status = statusOf(stageExecution);
         ChainExecution chainExecution = stageExecution.getChainExecution();
         PlanResultKey planResultKey = chainExecution.getPlanResultKey();
         PlanKey planKey = planResultKey.getPlanKey();
@@ -55,6 +62,65 @@ public abstract class AbstractGitHubStatusAction {
                     setStatus(ghRepo, status, sha, planResultKey.getKey(), stageExecution.getName());
                 }
             }
+        }
+    }
+
+    void updateStatus(ChainExecution chainExecution) {
+        for (StageExecution stageExecution : chainExecution.getStages()) {
+            updateStatus(stageExecution);
+        }
+    }
+
+    void updateStatusForMerge(ChainResultsSummary resultsSummary, ChainExecution chainExecution) {
+        MergeResultSummary mergeResultSummary = resultsSummary.getMergeResult();
+        if (mergeResultSummary == null) {
+            log.debug("No merge summary present; skipping status update for merge");
+            return;
+        } else if (mergeResultSummary.getMergeState() != MergeResultState.SUCCESS) {
+            log.info("Merge state was {}; skipping status update for merge", mergeResultSummary.getMergeState());
+            return;
+        }
+
+        PlanResultKey planResultKey = chainExecution.getPlanResultKey();
+        PlanKey planKey = planResultKey.getPlanKey();
+        ImmutableChain chain = (ImmutableChain) planManager.getPlanByKey(planKey);
+        if (chain == null) {
+            return;
+        }
+
+        RepositoryDefinition defaultRepo = PlanHelper.getDefaultRepositoryDefinition(chain);
+        if (defaultRepo == null || !shouldUpdateRepo(chain, defaultRepo)) {
+            return;
+        }
+        GitHubRepository ghRepo = (GitHubRepository) defaultRepo.getRepository();
+
+        String sha = mergeResultSummary.getMergeResultVcsKey();
+        if (sha == null) {
+            return;
+        }
+
+        for (StageExecution stageExecution : chainExecution.getStages()) {
+            GHCommitState status = statusOf(stageExecution);
+            setStatus(ghRepo, status, sha, planResultKey.getKey(), stageExecution.getName());
+        }
+    }
+
+    private static GHCommitState statusOf(StageExecution stageExecution) {
+        if (stageExecution.isCompleted() || stageExecution.getChainExecution().isCompleted()) {
+            if (stageExecution.isSuccessful()) {
+                return GHCommitState.SUCCESS;
+            } else if (Iterables.any(stageExecution.getBuilds(), new Predicate<BuildExecution>() {
+                @Override
+                public boolean apply(BuildExecution input) {
+                    return input.getBuildState() == BuildState.UNKNOWN;
+                }
+            })) {
+                return GHCommitState.ERROR;
+            } else {
+                return GHCommitState.FAILURE;
+            }
+        } else {
+            return GHCommitState.PENDING;
         }
     }
 

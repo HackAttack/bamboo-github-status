@@ -7,7 +7,6 @@ import com.atlassian.bamboo.plan.PlanManager;
 import com.atlassian.bamboo.security.EncryptionService;
 
 import org.jetbrains.annotations.NotNull;
-import org.kohsuke.github.GHCommitState;
 
 public class GitHubStatusPreStage extends AbstractGitHubStatusAction implements PreStageAction {
 
@@ -19,7 +18,7 @@ public class GitHubStatusPreStage extends AbstractGitHubStatusAction implements 
 
     @Override
     public void execute(@NotNull StageExecution stageExecution) {
-        updateStatus(GHCommitState.PENDING, stageExecution);
+        updateStatus(stageExecution);
     }
 
 }
