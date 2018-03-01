@@ -23,8 +23,8 @@
     </scm>
 
     <properties>
-        <bamboo.version>5.15.3</bamboo.version>
-        <bamboo.data.version>5.15.3</bamboo.data.version>
+        <bamboo.version>6.4.0</bamboo.version>
+        <bamboo.data.version>6.4.0</bamboo.data.version>
         <amps.version>6.2.11</amps.version>
         <plugin.testrunner.version>1.2.3</plugin.testrunner.version>
     </properties>
