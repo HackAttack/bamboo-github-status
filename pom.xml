@@ -29,6 +29,14 @@
         <plugin.testrunner.version>1.2.3</plugin.testrunner.version>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>atlassian_maven</id>
+            <name>the atlassian maven repository</name>
+            <url>https://maven.atlassian.com/repository/public</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>org.kohsuke</groupId>
