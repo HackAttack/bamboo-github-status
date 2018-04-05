@@ -8,18 +8,24 @@ import com.atlassian.bamboo.plan.PlanManager;
 import com.atlassian.bamboo.plan.PlanResultKey;
 import com.atlassian.bamboo.plan.cache.ImmutableChain;
 import com.atlassian.bamboo.plugins.git.GitHubRepository;
-import com.atlassian.bamboo.repository.RepositoryDefinition;
+import com.atlassian.bamboo.plugins.git.GitRepository;
+import com.atlassian.bamboo.repository.Repository;
 import com.atlassian.bamboo.security.EncryptionService;
 import com.atlassian.bamboo.utils.BambooUrl;
 import com.atlassian.bamboo.utils.SystemProperty;
+import com.atlassian.bamboo.vcs.configuration.PlanRepositoryDefinition;
 import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
-
 import org.kohsuke.github.GHCommitState;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.List;
 
 public abstract class AbstractGitHubStatusAction {
 
@@ -47,51 +53,78 @@ public abstract class AbstractGitHubStatusAction {
         PlanKey planKey = planResultKey.getPlanKey();
         ImmutableChain chain = (ImmutableChain) planManager.getPlanByKey(planKey);
 
-        for (RepositoryDefinition repo : Configuration.ghReposFrom(chain)) {
+        for (PlanRepositoryDefinition repo : Configuration.getPlanRepositories(chain)) {
+
             if (shouldUpdateRepo(chain, repo)) {
                 String sha = chainExecution.getBuildChanges().getVcsRevisionKey(repo.getId());
                 if (sha != null) {
-                    GitHubRepository ghRepo = (GitHubRepository) repo.getRepository();
-                    setStatus(ghRepo, status, sha, planResultKey.getKey(), stageExecution.getName());
+                    setStatus(repo.asLegacyData().getRepository(), status, sha, planResultKey.getKey(), stageExecution.getName());
                 }
+            } else {
+                log.debug("Should not update repo: {}", repo.getName());
             }
         }
     }
 
-    private static boolean shouldUpdateRepo(ImmutableChain chain, final RepositoryDefinition repo) {
-        String config = chain.getBuildDefinition().getCustomConfiguration()
-                .get(Configuration.CONFIG_KEY);
-        if (config == null) {
-            return Configuration.DEFAULT_REPO_PREDICATE.apply(repo);
-        } else {
-            RepositoryDefinition repoToCheck = chain.hasMaster()
-                    ? Iterables.find(
-                            Configuration.ghReposFrom(chain.getMaster()),
-                            new Predicate<RepositoryDefinition>() {
-                                @Override
-                                public boolean apply(RepositoryDefinition input) {
-                                    return input.getName().equals(repo.getName());
-                                }
-                            })
-                    : repo;
+    static boolean shouldUpdateRepo(ImmutableChain chain, final PlanRepositoryDefinition repo) {
 
-            return Configuration.toList(config).contains(repoToCheck.getId());
+        PlanRepositoryDefinition repoToCheck = repo;
+        if (chain.hasMaster()) {
+            repoToCheck = FluentIterable.from(Configuration.getPlanRepositories(chain.getMaster()))
+                .firstMatch(new Predicate<PlanRepositoryDefinition>() {
+
+                    @Override
+                    public boolean apply(PlanRepositoryDefinition input) {
+
+                        boolean result = input.getName().equals(repo.getName());
+                        if (result) {
+                            try {
+                                result = isTargetGithubRepository(input);
+                            }
+                            catch (MalformedURLException ex) {
+                                throw new RuntimeException("Failed checking repository definition hostname", ex);
+                            }
+                        }
+                        return result;
+                    }
+                })
+                .or(repo);
         }
+
+        return Configuration.DEFAULT_REPO_PREDICATE.apply(repoToCheck) ||
+            Configuration.isRepositorySelected(chain.getBuildDefinition().getCustomConfiguration(), repoToCheck.getId());
     }
 
-    private void setStatus(GitHubRepository repo, GHCommitState status, String sha,
+    private void setStatus(Repository repo, GHCommitState status, String sha,
                            String planResultKey, String context) {
         String url = bambooUrl.withBaseUrlFromConfiguration("/browse/" + planResultKey);
         try {
             String password;
-            try {
-                password = repo.getClass().getDeclaredMethod("getPassword").invoke(repo).toString();
-            } catch (NoSuchMethodException ex) {
-                password = encryptionService.decrypt(
-                        repo.getClass().getDeclaredMethod("getEncryptedPassword").invoke(repo).toString());
+            String username;
+            String repositoryUrl;
+            if (repo instanceof GitHubRepository) {
+                GitHubRepository gitHubRepository = (GitHubRepository) repo;
+                try {
+                    password = gitHubRepository.getClass().getDeclaredMethod("getPassword").invoke(gitHubRepository).toString();
+                } catch (NoSuchMethodException ex) {
+                    password = encryptionService.decrypt(
+                            gitHubRepository.getClass().getDeclaredMethod("getEncryptedPassword").invoke(gitHubRepository).toString());
+                }
+                username = gitHubRepository.getUsername();
+                repositoryUrl = gitHubRepository.getRepository();
+            } else {
+                GitRepository gitRepository = (GitRepository) repo;
+                password = gitRepository.getAccessData().getPassword();
+                username = gitRepository.getAccessData().getUsername();
+                repositoryUrl = gitRepository.getAccessData().getRepositoryUrl();
+                repositoryUrl = getRelativePath(repositoryUrl);
             }
-            GitHub gitHub = GitHub.connectToEnterprise(gitHubEndpoint, repo.getUsername(), password);
-            GHRepository repository = gitHub.getRepository(repo.getRepository());
+
+            log.info(String.format("Connecting to github ... username = %s, password = %s, repositoryUrl = %s",
+                    username, password, repositoryUrl));
+
+            GitHub gitHub = GitHub.connectToEnterprise(gitHubEndpoint, username, password);
+            GHRepository repository = gitHub.getRepository(repositoryUrl);
             sha = repository.getCommit(sha).getSHA1();
             repository.createCommitStatus(sha, status, url, null, context);
             log.info("GitHub status for commit {} ({}) set to {}.", sha, context, status);
@@ -100,4 +133,25 @@ public abstract class AbstractGitHubStatusAction {
         }
     }
 
+    private static String getRelativePath(String url) throws MalformedURLException {
+
+        String path = new URL(url).getPath();
+        if (path.startsWith("/")) {
+            path = path.substring(1);
+        }
+        return path.replace(".git", "");
+    }
+
+    static boolean isTargetGithubRepository(PlanRepositoryDefinition repositoryDefinition) throws MalformedURLException {
+
+        Repository repository = repositoryDefinition.asLegacyData().getRepository();
+        if (repository instanceof GitRepository) {
+            GitRepository gitRepository = (GitRepository) repository;
+            URL repositoryUrl = new URL(gitRepository.getAccessData().getRepositoryUrl());
+            URL githubUrl = new URL(gitHubEndpoint);
+            return repositoryUrl.getHost().toLowerCase().equals(githubUrl.getHost().toLowerCase());
+        } else {
+            return true;
+        }
+    }
 }
