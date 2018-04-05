@@ -15,6 +15,7 @@ import com.atlassian.bamboo.utils.BambooUrl;
 import com.atlassian.bamboo.utils.SystemProperty;
 import com.atlassian.bamboo.vcs.configuration.PlanRepositoryDefinition;
 import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import org.kohsuke.github.GHCommitState;
 import org.kohsuke.github.GHRepository;
@@ -24,6 +25,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
 
 public abstract class AbstractGitHubStatusAction {
 
@@ -64,27 +66,33 @@ public abstract class AbstractGitHubStatusAction {
         }
     }
 
-    private boolean shouldUpdateRepo(ImmutableChain chain, final PlanRepositoryDefinition repo) {
+    static boolean shouldUpdateRepo(ImmutableChain chain, final PlanRepositoryDefinition repo) {
 
-        PlanRepositoryDefinition repoToCheck = chain.hasMaster()
-                ? Iterables.find(
-                Configuration.getPlanRepositories(chain.getMaster()),
-                new Predicate<PlanRepositoryDefinition>() {
+        PlanRepositoryDefinition repoToCheck = repo;
+        if (chain.hasMaster()) {
+            repoToCheck = FluentIterable.from(Configuration.getPlanRepositories(chain.getMaster()))
+                .firstMatch(new Predicate<PlanRepositoryDefinition>() {
+
                     @Override
                     public boolean apply(PlanRepositoryDefinition input) {
+
                         boolean result = input.getName().equals(repo.getName());
                         if (result) {
                             try {
                                 result = isTargetGithubRepository(input);
-                            } catch (MalformedURLException ex) {
+                            }
+                            catch (MalformedURLException ex) {
                                 throw new RuntimeException("Failed checking repository definition hostname", ex);
                             }
                         }
                         return result;
                     }
                 })
-                : repo;
-        return Configuration.isRepositorySelected(chain.getBuildDefinition().getCustomConfiguration(), repoToCheck.getId());
+                .or(repo);
+        }
+
+        return Configuration.DEFAULT_REPO_PREDICATE.apply(repoToCheck) ||
+            Configuration.isRepositorySelected(chain.getBuildDefinition().getCustomConfiguration(), repoToCheck.getId());
     }
 
     private void setStatus(Repository repo, GHCommitState status, String sha,
@@ -134,7 +142,7 @@ public abstract class AbstractGitHubStatusAction {
         return path.replace(".git", "");
     }
 
-    private boolean isTargetGithubRepository(PlanRepositoryDefinition repositoryDefinition) throws MalformedURLException {
+    static boolean isTargetGithubRepository(PlanRepositoryDefinition repositoryDefinition) throws MalformedURLException {
 
         Repository repository = repositoryDefinition.asLegacyData().getRepository();
         if (repository instanceof GitRepository) {
