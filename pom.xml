@@ -33,7 +33,7 @@
         <dependency>
             <groupId>org.kohsuke</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.69</version>
+            <version>1.90</version>
         </dependency>
         <dependency>
             <groupId>com.atlassian.bamboo</groupId>
