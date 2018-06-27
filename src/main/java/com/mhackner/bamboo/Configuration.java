@@ -50,7 +50,12 @@ public class Configuration extends BaseBuildConfigurationAwarePlugin
 
     @Override
     public void addDefaultValues(@NotNull BuildConfiguration buildConfiguration) {
-        Plan plan = planManager.getPlanByKey(PlanKeys.getPlanKey(buildConfiguration.getString("buildKey")));
+        String buildKey = buildConfiguration.getString("buildKey");
+        if(buildKey == null){
+            buildConfiguration.setProperty(CONFIG_KEY, ImmutableList.of());
+            return;
+        }
+        Plan plan = planManager.getPlanByKey(PlanKeys.getPlanKey(buildKey));
         RepositoryDefinition repo = Iterables.find(ghReposFrom(plan), DEFAULT_REPO_PREDICATE, null);
         buildConfiguration.setProperty(CONFIG_KEY, repo == null
                 ? ImmutableList.of()
